@@ -96,16 +96,114 @@ class PlantPhenotyping:
             self.segment_plant()
 
         features ={}
-        leaft_area = cv2.countNonzero(self.mask)
-        features["area_foliar_pixels"] = int(leaft_area)
 
-        contours, _= cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #1. Área Foliar (contagem de pixels brancos na máscara).
+        leaft_area = cv2.countNonzero(self.mask)
+        features['area_foliar_pixels'] = int(leaft_area)
+
+        #2. Perímetro, Compacidade, Dimensões, Solidez, etc.
+        contours, _ = cv2.findContours(self.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if contours:
-            largest_contour = max(contours, key= cv2.contourArea)
-            mask = np.zeros_like(mask)
-            cv2.drawContours(mask, [largest_contour], -1,255,-1)
+            largest_contour = max(contours, key=cv2.contourArea)
 
-        self.mask = mask
-        return mask
+            #Perímetro
+            perimeter = cv2.arcLength(largest_contour, True)
+            features['perimetro'] = float(perimeter)
+
+            # Compacidade (Circularidade)
+            if perimeter > 0:
+                compactness = (4 * np.pi * leaft_area) / (perimeter ** 2)
+                features['compacidade'] = float(compactness)
+
+            #Bounding Box (Largura e Altura)
+            x, y, w, h = cv2.boundingRect(largest_contour)
+            features['largura'] = int(w)
+            features['altura'] = int(h)
+            features['aspect_ratio'] = float(h / w) if w > 0 else 0
+
+            #Solidez (Solidity)
+            hull = cv2.convexHull(largest_contour)
+            hull_area = cv2.contourArea(hull)
+            if hull_area > 0:
+                solidity = leaft_area / hull_area
+                features['solidez'] = float(solidity)
+
+            #Momentos de Hu (Invariantes de Forma)
+            moments = cv2.moments(largest_contour)
+            if moments['m00'] != 0:
+                hu_moments = cv2.HuMoments(moments)
+                for i, hu in enumerate(hu_moments):
+                    features[f'hu_moment_{i +1}'] = float(hu[0])
+
+        #3. Adicionar características de cor e textura (funções auxiliares)
+        features.update(self._extract_color_features())
+        features.update(self._extract_texture_features())
         
+        self.features = features
+        return features
+    
+
+    #Funções Privadas
+    def _extract_color_features(self) -> Dict:
+        """
+        Extrai características de cor, incluindo índices de vegetação (ExG, VARI).
+        """
+        # ... (código para extrair médias RGB, HSV e calcular ExG e VARI)
+        # O código completo está no arquivo final, mas o conceito é:
+        # 1. Aplicar a máscara na imagem original para isolar a cor da planta.
+        # 2. Calcular a média e o desvio padrão de cada canal de cor (R, G, B).
+        # 3. Aplicar as fórmulas dos índices de vegetação (ExG = 2G - R - B, etc.).
+        pass # Placeholder para o código completo
+
+    def _extract_texture_features(self) -> Dict:
+        """
+        Extrai características de textura usando gradientes (Sobel).
+        """
+        # ... (código para calcular gradientes e variância Laplaciana)
+        # O conceito é:
+        # 1. Converter a imagem para escala de cinza.
+        # 2. Aplicar filtros de borda (Sobel, Laplacian) para medir a variação de intensidade.
+        # 3. Valores altos indicam textura complexa (nervuras, rugosidade).
+        pass # Placeholder para o código completo
+
+
+    #Funções de Saída e Pipeline Completo  
+    def save_visualization(self, output_path: str) -> None:
+        """
+        Salva uma imagem de visualização com 4 painéis (Original, Máscara, etc.).
+        """
+        # ... (código para combinar as imagens e salvar)
+        pass # Placeholder
+
+    def save_features_json(self, output_path: str) -> None:
+        """
+        Salva as características extraídas em um arquivo JSON.
+        """
+        # ... (código para serializar o dicionário self.features para JSON)
+        pass # Placeholder
+
+    def process_complete(self, output_dir: str, base_name: str) -> Dict:
+        """
+        Executa o pipeline completo: pré-processamento -> segmentação -> extração -> salvamento.
+        """
+        self.preprocess_image()
+        self.segment_plant()
+        features = self.extract_morphological_features()
+        
+        # Define os caminhos de saída
+        viz_path = f"{output_dir}/{base_name}_visualization.png"
+        json_path = f"{output_dir}/{base_name}_features.json"
+        
+        # Salva os resultados
+        self.save_visualization(viz_path)
+        self.save_features_json(json_path)
+        
+        return features
+
+    def batch_process(input_dir: str, output_dir: str) -> List[Dict]:
+        """
+        Função estática para processar múltiplas imagens em um diretório.
+        """
+        # ... (código para iterar sobre arquivos, chamar PlantPhenotyping.process_complete e consolidar resultados)
+        pass # Placeholder
