@@ -43,7 +43,7 @@ class PlantPhenotyping:
         #(5,5) é o tamanho do kernel, 0 é o desvio padrão 
         blurred = cv2.GaussianBlur(img_rgb, (5, 5), 0)
         
-        self.preprocess_image = blurred
+        self.processed_image = blurred
         return blurred
     
     def segment_plant(self) -> np.ndarray:
@@ -68,14 +68,14 @@ class PlantPhenotyping:
         mask = cv2.inRange(hsv, lower_green, upper_green)
 
         #4. Operações Morfológicas (Limpeza da Máscara)
-        Kernel = np.ones((5,5), np.uint8) #Cria um elemento estruturante 
+        kernel = np.ones((5,5), np.uint8) #Cria um elemento estruturante 
         #MORPH_OPEN: Fecha alguns buracos na planta (PREENCHE) 
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iteration=2)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
         #MORPH_OPEN: Remove pequenos pontos e ruídos fora da planta 
-        mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN, kernel, iteration=1)
+        mask = cv2.morphologyEx(mask,cv2.MORPH_OPEN, kernel, iterations=1)
 
         #5. Isolamento do maior Contorno(Garante que só a planta seja considerada)
-        contours, _ = cv2.findContours = max(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         if contours: 
             #Encontra o contorno com a maior area(Assumindo ser a plantla)
@@ -88,7 +88,7 @@ class PlantPhenotyping:
             self.mask = mask
             return mask
         
-    def extract_morphological_festures(self) ->Dict:
+    def extract_morphological_features(self) ->Dict:
         """
         Extrai características morfológicas (área, perímetro, forma) da planta.
         """
@@ -98,8 +98,8 @@ class PlantPhenotyping:
         features ={}
 
         #1. Área Foliar (contagem de pixels brancos na máscara).
-        leaft_area = cv2.countNonzero(self.mask)
-        features['area_foliar_pixels'] = int(leaft_area)
+        leaf_area = cv2.countNonZero(self.mask)
+        features['area_foliar_pixels'] = int(leaf_area)
 
         #2. Perímetro, Compacidade, Dimensões, Solidez, etc.
         contours, _ = cv2.findContours(self.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -113,7 +113,7 @@ class PlantPhenotyping:
 
             # Compacidade (Circularidade)
             if perimeter > 0:
-                compactness = (4 * np.pi * leaft_area) / (perimeter ** 2)
+                compactness = (4 * np.pi * leaf_area) / (perimeter ** 2)
                 features['compacidade'] = float(compactness)
 
             #Bounding Box (Largura e Altura)
@@ -128,7 +128,7 @@ class PlantPhenotyping:
             features["area_convexa"] = float(hull_area) #observar 
 
             if hull_area > 0:
-                solidity = leaft_area / hull_area
+                solidity = leaf_area / hull_area
                 features['solidez'] = float(solidity)
 
             #Momentos de Hu (Invariantes de Forma)
@@ -268,7 +268,7 @@ class PlantPhenotyping:
         """
         if not self.features: self.extract_morphological_features()
         output_data = {"image_path": self.image_path, "timestamp": datetime.now().isoformat(), "features": self.features}
-        with open(output_path, "w", encodinf= "utf-8") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2, ensure_ascii=False)
 
     def process_complete(self, output_dir: str, base_name: str) -> Dict:
@@ -289,22 +289,23 @@ class PlantPhenotyping:
         
         return features
 
-    def batch_process(input_dir: str, output_dir: str) -> List[Dict]:
-        import os
-        from pathlib import Path
-        results = []
-        image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]
-        for file_path in Path(input_dir).iterdir():
-            if file_path.suffix.lower() in image_extensions:
-                try:
-                    print(f"Processando: {file_path.name}")
-                    processor = PlantPhenotyping(str(file_path))
-                    base_name = file_path.stem
-                    features = processor.process_complete(output_dir, base_name)
-                    results.append({"filename": file_path.name, "features": features})
-                except Exception as e:
-                    print(f"Erro ao processar {file_path.name}: {str(e)}")
-        consolidated_path = f"{output_dir}/batch_results.json"
-        with open(consolidated_path, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
-        return results
+
+def batch_process(input_dir: str, output_dir: str) -> List[Dict]:
+    import os
+    from pathlib import Path
+    results = []
+    image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]
+    for file_path in Path(input_dir).iterdir():
+        if file_path.suffix.lower() in image_extensions:
+            try:
+                print(f"Processando: {file_path.name}")
+                processor = PlantPhenotyping(str(file_path))
+                base_name = file_path.stem
+                features = processor.process_complete(output_dir, base_name)
+                results.append({"filename": file_path.name, "features": features})
+            except Exception as e:
+                print(f"Erro ao processar {file_path.name}: {str(e)}")
+    consolidated_path = f"{output_dir}/batch_results.json"
+    with open(consolidated_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+    return results

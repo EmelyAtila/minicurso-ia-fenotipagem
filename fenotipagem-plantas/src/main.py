@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 #Importa as classes e funções dos outros módulos
-from image_processor import PlantPhenotyping, bath_process
+from image_processor import PlantPhenotyping, batch_process
 from report_agent import ReportAgent
 
 def process_single_image(args):

@@ -87,6 +87,10 @@ Seja técnico mas acessível, usando terminologia científica apropriada."""
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(report_content)
         return output_path
+    
+    def load_phenotyping_data(self, json_path: str) -> Dict:
+        with open (json_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
 
     def generate_full_report(self, json_path: str, output_path: str) -> str:
         data = self.load_phenotyping_data(json_path)
