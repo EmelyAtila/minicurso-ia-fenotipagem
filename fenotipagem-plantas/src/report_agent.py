@@ -33,8 +33,9 @@ class ReportAgent:
 Forneça uma análise detalhada e profissional que inclua:
 1. Características Morfológicas: Interprete área foliar, perímetro, dimensões.
 2. Análise de Forma: Baseado na solidez e compacidade, descreva a forma geral.
-3. Análise de Cor e Saúde: Interprete os índices de vegetação (ExG, VARI).
-4. Conclusões e Recomendações: Forneça uma avaliação geral e sugestões.
+3. Análise de Saúde e Área Afetada: Interprete os índices de vegetação (ExG, VARI) e a porcentagem de área afetada.
+4. Sugestão de Doenças: Baseado nos dados de cor, textura e área afetada, sugira **três possíveis doenças** ou deficiências nutricionais.
+5. Conclusões e Recomendações: Forneça uma avaliação geral e sugestões de manejo.
 
 Seja técnico mas acessível, usando terminologia científica apropriada."""
 

@@ -146,12 +146,59 @@ class PlantPhenotyping:
         #3. Adicionar características de cor e textura (funções auxiliares)
         features.update(self._extract_color_features())
         features.update(self._extract_texture_features())
-        
+        features.update(self._extract_health_features()) # NOVO: Adiciona features de saúde
+
         self.features = features
         return features
     
 
     #Funções Privadas
+    def _extract_health_features(self) -> Dict:
+        """
+        Calcula a área afetada (não-verde) da planta e a porcentagem de área saudável.
+        """
+        if self.mask is None or self.processed_image is None: return {}
+        
+        health_features = {}
+        
+        # 1. Área Total da Planta (Saudável + Afetada)
+        # Para simplificar, vamos considerar a área total do contorno (hull_area)
+        # ou a área da bounding box. Usaremos a área do contorno para ser mais preciso.
+        
+        # Recalcula a área do contorno (hull_area)
+        contours, _ = cv2.findContours(self.mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return health_features
+            
+        largest_contour = max(contours, key=cv2.contourArea)
+        hull = cv2.convexHull(largest_contour)
+        hull_area = cv2.contourArea(hull)
+        
+        # Área Foliar Saudável (já calculada em extract_morphological_features)
+        leaf_area_healthy = cv2.countNonZero(self.mask)
+        
+        # 2. Área Afetada (Área Total - Área Saudável)
+        # Nota: Isso é uma simplificação. O ideal seria segmentar áreas marrons/amarelas.
+        # Aqui, estamos usando a diferença entre a área convexa e a área foliar.
+        area_afetada_pixels = hull_area - leaf_area_healthy
+        
+        # Garante que a área afetada não seja negativa
+        area_afetada_pixels = max(0, area_afetada_pixels)
+        
+        # 3. Porcentagem de Área Saudável
+        if hull_area > 0:
+            porcentagem_saudavel = (leaf_area_healthy / hull_area) * 100
+            porcentagem_afetada = 100 - porcentagem_saudavel
+        else:
+            porcentagem_saudavel = 0
+            porcentagem_afetada = 0
+            
+        health_features['area_afetada_pixels'] = int(area_afetada_pixels)
+        health_features['porcentagem_area_saudavel'] = float(porcentagem_saudavel)
+        health_features['porcentagem_area_afetada'] = float(porcentagem_afetada)
+        
+        return health_features
+
     def _extract_color_features(self) -> Dict:
         """
         Extrai características de cor, incluindo índices de vegetação (ExG, VARI).
